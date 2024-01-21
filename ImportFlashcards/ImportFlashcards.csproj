@@ -8,8 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Extract\ckad\" />
-    <Folder Include="Extract\machineLearning\" />
+    <Compile Remove="Extract\ckad\**" />
+    <Compile Remove="Extract\machineLearning\**" />
+    <EmbeddedResource Remove="Extract\ckad\**" />
+    <EmbeddedResource Remove="Extract\machineLearning\**" />
+    <None Remove="Extract\ckad\**" />
+    <None Remove="Extract\machineLearning\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Extract\" />
     <Folder Include="Storage\" />
   </ItemGroup>
 
