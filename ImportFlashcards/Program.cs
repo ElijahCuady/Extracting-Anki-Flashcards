@@ -9,6 +9,7 @@ namespace ImportFlashcards
 {
     internal class Program
     {
+        private const string BASE_PATH = @"C:\Users\elija\source\repos\ImportFlashcards\ImportFlashcards\";
 
         static async Task Main(string[] args)
         {
@@ -23,11 +24,10 @@ namespace ImportFlashcards
 
             public ImportDetail(string name)
             {
-                string basePath = @"C:\Users\elija\source\repos\ImportFlashcards\ImportFlashcards\";
-                StoragePath = Path.Combine(basePath, "Storage", name); // Storage/name
+                StoragePath = Path.Combine(BASE_PATH, "Storage", name); // Storage/name
 
                 Name = RemoveApkg(name); 
-                ExtractPath = Path.Combine(basePath, "Extract", Name); // Extract to this path (Storage\Name)
+                ExtractPath = Path.Combine(BASE_PATH, "Extract", Name); // Extract to this path (Storage\Name)
             }
         }
 
@@ -79,10 +79,11 @@ namespace ImportFlashcards
             Console.WriteLine("Convertion done");
         }
 
+        // Read all the contents of the Storage file in the project, prepare paths for extraction
         public static List<ImportDetail> GetAllFiles2()
         {
 
-            string targetFolderPath = @"C:\Users\elija\source\repos\ImportFlashcards\ImportFlashcards\Storage\";//Replace with your directory path
+            string targetFolderPath = Path.Combine(BASE_PATH, "Storage");
 
             DirectoryInfo directoryInfo = new DirectoryInfo(targetFolderPath);
             FileInfo[] files = directoryInfo.GetFiles();
@@ -91,8 +92,6 @@ namespace ImportFlashcards
             // Print file names
             foreach (FileInfo file in files)
             {
-                //Console.WriteLine(file.Name); // Use 'file.FullName' for full path
-                //Console.WriteLine(file.FullName); // Use 'file.FullName' for full path
                 allDetails.Add(new ImportDetail(file.Name));
             }
 
@@ -105,57 +104,30 @@ namespace ImportFlashcards
             return originalString.Remove(originalString.Length - charsToRemove);
         }
 
-
-        public static async Task GetAllFiles1()
+        private static async Task ReadAnkiData(string dbPath)
         {
-            string targetFolderPath = @"\Storage";//Replace with your directory path
-            string currDir = Directory.GetCurrentDirectory();
-            await Console.Out.WriteLineAsync(currDir);
+            var connectionString = $"Data Source={dbPath};";
+            using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
 
-            string fullPath = Path.Combine(currDir, targetFolderPath);
-            Console.WriteLine(fullPath);
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT flds FROM notes;";
 
-            DirectoryInfo directoryInfo = new DirectoryInfo(fullPath);
-            FileInfo[] files = directoryInfo.GetFiles();
-
-            // Print file names
-            foreach (FileInfo file in files)
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                Console.WriteLine(file.Name); // Use 'file.FullName' for full path
-            }
-        }
+                var flds = reader.GetString(0);
+                var flashcardParts = flds.Split('\x1f'); // '\x1f' is the field separator in Anki
 
-        public static async Task ReadAnkiData(string dbPath)
-        {
-            string connectionString = $"Data Source={dbPath};";
-
-            using (var connection = new SqliteConnection(connectionString))
-            {
-                connection.Open();
-
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT flds FROM notes;";
-
-                using (var reader = command.ExecuteReader())
+                if (flashcardParts.Length >= 2)
                 {
-                    while (reader.Read())
+                    var flashcard = new Flashcard
                     {
-                        string flds = reader.GetString(0);
-                        var flashcardParts = flds.Split('\x1f'); // '\x1f' is the field separator in Anki
-
-                        if (flashcardParts.Length >= 2)
-                        {
-                            Flashcard flashcard = new Flashcard
-                            {
-                                Front = flashcardParts[0],
-                                Back = flashcardParts[1]
-                            };
-                            Console.WriteLine($"Front: {flashcard.Front}\nBack: {flashcard.Back} \n\n" );
-                        }
-                    }
+                        Front = flashcardParts[0],
+                        Back = flashcardParts[1]
+                    };
+                    Console.WriteLine($"Front: {flashcard.Front}, Back: {flashcard.Back}");
                 }
-
-                connection.Close();
             }
         }
 
@@ -178,3 +150,24 @@ namespace ImportFlashcards
             await ExtractApkg(machineLearningFlashcards, (extractionPath + "machineLearning"));
         }
 */
+
+/*
+public static async Task GetAllFiles1()
+        {
+            string targetFolderPath = @"\Storage";//Replace with your directory path
+            string currDir = Directory.GetCurrentDirectory();
+            await Console.Out.WriteLineAsync(currDir);
+
+            string fullPath = Path.Combine(currDir, targetFolderPath);
+            Console.WriteLine(fullPath);
+
+            DirectoryInfo directoryInfo = new DirectoryInfo(fullPath);
+            FileInfo[] files = directoryInfo.GetFiles();
+
+            // Print file names
+            foreach (FileInfo file in files)
+            {
+                Console.WriteLine(file.Name); // Use 'file.FullName' for full path
+            }
+        }
+ */
